@@ -3,108 +3,51 @@ package dev.prateekthakur.mobileatlas.ui.screens.country
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dev.prateekthakur.mobileatlas.domain.model.CountryPopulation
-import dev.prateekthakur.mobileatlas.domain.model.CountryPosition
 import dev.prateekthakur.mobileatlas.domain.repository.PopulationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+
 @HiltViewModel
 class CountryViewModel @Inject constructor(
-    private val countryRepository: PopulationRepository
+    private val repository: PopulationRepository
 ) : ViewModel() {
 
-    private val iso3 = "NGA"
-    private val iso2 = "NG"
+    private val mutableState = MutableStateFlow(CountryState())
+    val state: StateFlow<CountryState> = mutableState.asStateFlow()
 
-    private val _populationState = MutableStateFlow<CountryPopulation?>(null)
-    private val _positionState = MutableStateFlow<CountryPosition?>(null)
-    private val _flagState = MutableStateFlow<String?>(null)
-    private val _currencyState = MutableStateFlow<String?>(null)
-    private val _citiesState = MutableStateFlow<List<String>?>(null)
-    private val _dialCodeState = MutableStateFlow<String?>(null)
-
-    val populationState = _populationState.asStateFlow()
-    val positionState = _positionState.asStateFlow()
-    val flagState = _flagState.asStateFlow()
-    val currencyState = _currencyState.asStateFlow()
-    val citiesState = _citiesState.asStateFlow()
-    val dialCodeState = _dialCodeState.asStateFlow()
-
-    private fun getCountryPopulation() {
+    fun getCountryData(iso2: String) {
         viewModelScope.launch {
-            try {
-                val data = countryRepository.getCountryPopulation(iso3)
-                _populationState.value = data.getOrNull()
-            } catch (e: Exception) {
-                _populationState.value = null
+            mutableState.update { it.copy(isLoading = true, error = null) }
+
+            val country = repository.getCountryCapital(iso2).getOrNull()!!
+            val population = repository.getCountryPopulation(country.iso3).getOrNull()
+            val position = repository.getCountryPosition(iso2).getOrNull()
+            val flag = repository.getCountryFlag(iso2).getOrNull()
+            val currency = repository.getCountryCurrency(iso2).getOrNull()
+            val cities = repository.getCountryCities(iso2).getOrNull()
+            val dialCode = repository.getCountryDialCode(iso2).getOrNull()
+            val states = repository.getCountryStates(iso2).getOrNull()
+
+            mutableState.update {
+                it.copy(
+                    iso2= country.iso2,
+                    iso3 = country.iso3,
+                    population = population,
+                    position = position,
+                    flagUrl = flag,
+                    currency = currency,
+                    cities = cities,
+                    dialCode = dialCode,
+                    isLoading = false,
+                    error = null,
+                    states = states
+                )
             }
         }
-    }
-
-    private fun getCountryPosition() {
-        viewModelScope.launch {
-            try {
-                val data = countryRepository.getCountryPosition(iso2)
-                _positionState.value = data.getOrNull()
-            } catch (e: Exception) {
-                _populationState.value = null
-            }
-        }
-    }
-
-    private fun getCountryFlag() {
-        viewModelScope.launch {
-            try {
-                val data = countryRepository.getCountryFlag(iso2)
-                _flagState.value = data.getOrNull()
-            } catch (e: Exception) {
-                _flagState.value = null
-            }
-        }
-    }
-
-    private fun getCountryCurrency() {
-        viewModelScope.launch {
-            try {
-                val data = countryRepository.getCountryCurrency(iso2)
-                _currencyState.value = data.getOrNull()
-            } catch (e: Exception) {
-                _currencyState.value = null
-            }
-        }
-    }
-
-    private fun getCountryCities() {
-        viewModelScope.launch {
-            try {
-                val data = countryRepository.getCountryCities(iso2)
-                _citiesState.value = data.getOrNull()
-            } catch (e: Exception) {
-                _citiesState.value = null
-            }
-        }
-    }
-
-    private fun getCountryDialCode() {
-        viewModelScope.launch {
-            try {
-                val data = countryRepository.getCountryDialCode(iso2)
-                _dialCodeState.value = data.getOrNull()
-            } catch (e: Exception) {
-                _dialCodeState.value = null
-            }
-        }
-    }
-
-    fun getCountryData() {
-        getCountryPopulation()
-        getCountryPosition()
-        getCountryFlag()
-        getCountryCurrency()
-        getCountryCities()
-        getCountryDialCode()
     }
 }

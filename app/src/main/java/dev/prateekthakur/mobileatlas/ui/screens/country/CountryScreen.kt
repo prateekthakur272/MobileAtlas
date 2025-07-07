@@ -44,37 +44,38 @@ import dev.prateekthakur.mobileatlas.ui.composables.NetworkSvg
 import java.text.NumberFormat
 import java.util.Locale
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CountryScreen(modifier: Modifier = Modifier, viewModel: CountryViewModel = hiltViewModel()) {
 
-    val populationState by viewModel.populationState.collectAsState()
-    val positionState by viewModel.positionState.collectAsState()
-    val flagState by viewModel.flagState.collectAsState()
-    val currencyState by viewModel.currencyState.collectAsState()
-    val citiesState by viewModel.citiesState.collectAsState()
-    val dialCodeState by viewModel.dialCodeState.collectAsState()
+    val state by viewModel.state.collectAsState()
 
     var expanded by rememberSaveable { mutableStateOf(false) }
     var expandedCities by rememberSaveable { mutableStateOf(false) }
+    var expandedStates by rememberSaveable { mutableStateOf(false) }
 
     val rotation by animateFloatAsState(if (expanded) 180f else 0f, label = "")
     val rotationCities by animateFloatAsState(if (expandedCities) 180f else 0f, label = "")
+    val rotationStates by animateFloatAsState(if (expandedStates) 180f else 0f, label = "")
 
-    val populationData = populationState?.populationCounts?.reversed() ?: listOf()
+    val populationData = state.population?.populationCounts?.reversed() ?: emptyList()
+    val cities = state.cities ?: emptyList()
+    val states = state.states ?: emptyList()
 
-    val dataToShow = mutableListOf<String>()
-    dataToShow.add("ISO3 Code: NGA")
-    dataToShow.add("ISO2 Code: NG")
-    currencyState?.let { dataToShow.add("Currency: $it") }
-    positionState?.let { dataToShow.add("Location: ${it.lat}, ${it.lon}") }
-    citiesState?.let { dataToShow.add("Number of cities: ${citiesState!!.size}") }
-    dialCodeState?.let { dataToShow.add("Country code/Dial code: $it") }
+    val dataToShow = mutableListOf(
+        "ISO3 Code: ${state.iso3}",
+        "ISO2 Code: ${state.iso2}"
+    )
 
-    val count = citiesState?.size ?: 0
+    state.currency?.let { dataToShow.add("Currency: $it") }
+    state.position?.let { dataToShow.add("Location: ${it.lat}, ${it.lon}") }
+    if (cities.isNotEmpty()) dataToShow.add("Number of cities: ${cities.size}")
+    if (states.isNotEmpty()) dataToShow.add("Number of states: ${states.size}")
+    state.dialCode?.let { dataToShow.add("Country code/Dial code: $it") }
 
     LaunchedEffect(Unit) {
-        viewModel.getCountryData()
+        viewModel.getCountryData("NG")
     }
 
     Scaffold(topBar = {
@@ -108,7 +109,7 @@ fun CountryScreen(modifier: Modifier = Modifier, viewModel: CountryViewModel = h
                             .fillMaxWidth()
                             .height(220.dp)
                     ) {
-                        flagState?.let {
+                        state.flagUrl?.let {
                             NetworkSvg(
                                 it, cornerRadius = 8, modifier = Modifier.height(140.dp)
                             )
@@ -192,11 +193,50 @@ fun CountryScreen(modifier: Modifier = Modifier, viewModel: CountryViewModel = h
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clickable { expandedStates = !expandedStates }
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        "States (${states.size})",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = "Expand",
+                        modifier = Modifier
+                            .rotate(rotationStates)
+                            .size(30.dp)
+                    )
+                }
+            }
+
+            if (expandedStates) {
+                items(states.size) { index ->
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp, horizontal = 16.dp)
+                    ) {
+                        Text(
+                            "🌁 ${states[index].name} - ${states[index].stateCode}",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                }
+            }
+
+            item {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .clickable { expandedCities = !expandedCities }
                         .padding(16.dp)
                 ) {
                     Text(
-                        "Cities ($count)",
+                        "Cities (${cities.size})",
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.weight(1f)
                     )
@@ -211,7 +251,7 @@ fun CountryScreen(modifier: Modifier = Modifier, viewModel: CountryViewModel = h
             }
 
             if (expandedCities) {
-                items(count) { index ->
+                items(cities.size) { index ->
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = modifier
@@ -219,7 +259,7 @@ fun CountryScreen(modifier: Modifier = Modifier, viewModel: CountryViewModel = h
                             .padding(vertical = 8.dp, horizontal = 16.dp)
                     ) {
                         Text(
-                            "🏙️ ${citiesState!![index]}",
+                            "🏙️ ${cities[index]}",
                             style = MaterialTheme.typography.titleMedium
                         )
                     }

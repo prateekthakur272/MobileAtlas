@@ -12,4 +12,5 @@ object EndpointsPopulation {
     const val COUNTRY_CURRENCY = "${EndpointsBase.BASE_URL}/api/v0.1/countries/currency"
     const val COUNTRY_CITIES = "${EndpointsBase.BASE_URL}/api/v0.1/countries/cities"
     const val COUNTRY_DIAL_CODE = "${EndpointsBase.BASE_URL}/api/v0.1/countries/codes"
+    const val COUNTRY_STATES = "${EndpointsBase.BASE_URL}/api/v0.1/countries/states"
 }

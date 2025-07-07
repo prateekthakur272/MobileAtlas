@@ -5,6 +5,7 @@ import dev.prateekthakur.mobileatlas.data.request.CountryDataRequest
 import dev.prateekthakur.mobileatlas.domain.model.Country
 import dev.prateekthakur.mobileatlas.domain.model.CountryPopulation
 import dev.prateekthakur.mobileatlas.domain.model.CountryPosition
+import dev.prateekthakur.mobileatlas.domain.model.State
 import dev.prateekthakur.mobileatlas.domain.repository.PopulationRepository
 
 class PopulationRepositoryImpl(private val api: CountriesDataApi) : PopulationRepository {
@@ -12,6 +13,14 @@ class PopulationRepositoryImpl(private val api: CountriesDataApi) : PopulationRe
     override suspend fun getCountryCapital(): Result<List<Country>> {
         return withResult {
             val response = api.getCountries()
+            response.data
+        }
+    }
+
+    override suspend fun getCountryCapital(iso2: String): Result<Country> {
+        return withResult {
+            val request = CountryDataRequest(iso2 = iso2)
+            val response = api.getCountry(request)
             response.data
         }
     }
@@ -61,6 +70,14 @@ class PopulationRepositoryImpl(private val api: CountriesDataApi) : PopulationRe
             val request = CountryDataRequest(iso2 = iso2)
             val response = api.getCountryDialCode(request)
             response.data["dial_code"] as String
+        }
+    }
+
+    override suspend fun getCountryStates(iso2: String): Result<List<State>> {
+        return withResult {
+            val request = CountryDataRequest(iso2 = iso2)
+            val response = api.getCountryStates(request)
+            response.data.states
         }
     }
 }
