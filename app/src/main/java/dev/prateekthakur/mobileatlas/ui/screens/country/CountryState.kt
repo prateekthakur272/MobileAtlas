@@ -1,12 +1,12 @@
 package dev.prateekthakur.mobileatlas.ui.screens.country
 
+import dev.prateekthakur.mobileatlas.domain.model.Country
 import dev.prateekthakur.mobileatlas.domain.model.CountryPopulation
 import dev.prateekthakur.mobileatlas.domain.model.CountryPosition
 import dev.prateekthakur.mobileatlas.domain.model.State
 
 data class CountryState(
-    val iso3: String? = null,
-    val iso2: String? = null,
+    val country: Country? = null,
     val population: CountryPopulation? = null,
     val position: CountryPosition? = null,
     val flagUrl: String? = null,

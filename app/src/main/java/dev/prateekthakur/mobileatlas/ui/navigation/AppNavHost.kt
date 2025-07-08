@@ -20,8 +20,9 @@ fun AppNavHost() {
         composable("/"){
             CountriesScreen()
         }
-        composable("country"){
-            CountryScreen()
+        composable("country/{iso2}"){ state ->
+            val iso2 = state.arguments?.getString("iso2")!!
+            CountryScreen(iso2)
         }
     }
 }

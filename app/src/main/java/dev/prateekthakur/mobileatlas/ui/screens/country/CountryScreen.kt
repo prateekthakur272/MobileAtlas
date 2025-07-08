@@ -47,7 +47,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CountryScreen(modifier: Modifier = Modifier, viewModel: CountryViewModel = hiltViewModel()) {
+fun CountryScreen(iso2: String, modifier: Modifier = Modifier, viewModel: CountryViewModel = hiltViewModel()) {
 
     val state by viewModel.state.collectAsState()
 
@@ -64,8 +64,8 @@ fun CountryScreen(modifier: Modifier = Modifier, viewModel: CountryViewModel = h
     val states = state.states ?: emptyList()
 
     val dataToShow = mutableListOf(
-        "ISO3 Code: ${state.iso3}",
-        "ISO2 Code: ${state.iso2}"
+        "ISO3 Code: ${state.country?.iso3}",
+        "ISO2 Code: ${state.country?.iso2}"
     )
 
     state.currency?.let { dataToShow.add("Currency: $it") }
@@ -75,7 +75,7 @@ fun CountryScreen(modifier: Modifier = Modifier, viewModel: CountryViewModel = h
     state.dialCode?.let { dataToShow.add("Country code/Dial code: $it") }
 
     LaunchedEffect(Unit) {
-        viewModel.getCountryData("NG")
+        viewModel.getCountryData(iso2)
     }
 
     Scaffold(topBar = {
@@ -120,9 +120,9 @@ fun CountryScreen(modifier: Modifier = Modifier, viewModel: CountryViewModel = h
             }
 
             item {
-                Text("Nigeria", style = MaterialTheme.typography.titleLarge)
+                Text(state.country?.name?:"", style = MaterialTheme.typography.titleLarge)
                 Text(
-                    "Nairobi",
+                    state.country?.capital?:"",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Black.copy(alpha = 0.5f)
                 )

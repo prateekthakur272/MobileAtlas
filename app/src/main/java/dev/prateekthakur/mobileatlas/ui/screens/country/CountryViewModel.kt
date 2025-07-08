@@ -35,8 +35,7 @@ class CountryViewModel @Inject constructor(
 
             mutableState.update {
                 it.copy(
-                    iso2= country.iso2,
-                    iso3 = country.iso3,
+                    country = country,
                     population = population,
                     position = position,
                     flagUrl = flag,

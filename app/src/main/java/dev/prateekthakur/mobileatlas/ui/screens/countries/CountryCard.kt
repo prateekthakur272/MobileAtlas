@@ -21,7 +21,7 @@ import dev.prateekthakur.mobileatlas.ui.navigation.navController
 fun CountryCard(data: Country, modifier: Modifier = Modifier) {
     Surface(
         onClick = {
-            navController.navigate("country")
+            navController.navigate("country/${data.iso2}")
         }
     ){
         Box(
