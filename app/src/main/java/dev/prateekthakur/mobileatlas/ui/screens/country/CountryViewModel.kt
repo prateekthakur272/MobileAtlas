@@ -17,35 +17,38 @@ class CountryViewModel @Inject constructor(
     private val repository: PopulationRepository
 ) : ViewModel() {
 
-    private val mutableState = MutableStateFlow(CountryState())
+    private val mutableState = MutableStateFlow<CountryState>(CountryState.Loading)
     val state: StateFlow<CountryState> = mutableState.asStateFlow()
 
     fun getCountryData(iso2: String) {
         viewModelScope.launch {
-            mutableState.update { it.copy(isLoading = true, error = null) }
+            mutableState.update { CountryState.Loading }
+            try {
+                val country = repository.getCountryCapital(iso2).getOrNull()!!
+                val population = repository.getCountryPopulation(country.iso3).getOrNull()
+                val position = repository.getCountryPosition(iso2).getOrNull()
+                val flag = repository.getCountryFlag(iso2).getOrNull()
+                val currency = repository.getCountryCurrency(iso2).getOrNull()
+                val cities = repository.getCountryCities(iso2).getOrNull()
+                val dialCode = repository.getCountryDialCode(iso2).getOrNull()
+                val states = repository.getCountryStates(iso2).getOrNull()
 
-            val country = repository.getCountryCapital(iso2).getOrNull()!!
-            val population = repository.getCountryPopulation(country.iso3).getOrNull()
-            val position = repository.getCountryPosition(iso2).getOrNull()
-            val flag = repository.getCountryFlag(iso2).getOrNull()
-            val currency = repository.getCountryCurrency(iso2).getOrNull()
-            val cities = repository.getCountryCities(iso2).getOrNull()
-            val dialCode = repository.getCountryDialCode(iso2).getOrNull()
-            val states = repository.getCountryStates(iso2).getOrNull()
-
-            mutableState.update {
-                it.copy(
-                    country = country,
-                    population = population,
-                    position = position,
-                    flagUrl = flag,
-                    currency = currency,
-                    cities = cities,
-                    dialCode = dialCode,
-                    isLoading = false,
-                    error = null,
-                    states = states
-                )
+                mutableState.update {
+                    CountryState.Success(
+                        country = country,
+                        population = population!!,
+                        position = position!!,
+                        flagUrl = flag!!,
+                        currency = currency!!,
+                        cities = cities!!,
+                        dialCode = dialCode!!,
+                        states = states!!
+                    )
+                }
+            } catch (e: Exception) {
+                mutableState.update {
+                    CountryState.Error(e.message ?: "Unknown error")
+                }
             }
         }
     }

@@ -5,33 +5,14 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,230 +23,212 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.prateekthakur.mobileatlas.ui.composables.NetworkSvg
 import java.text.NumberFormat
-import java.util.Locale
-
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CountryScreen(iso2: String, modifier: Modifier = Modifier, viewModel: CountryViewModel = hiltViewModel()) {
-
+fun CountryScreen(
+    iso2: String, modifier: Modifier = Modifier, viewModel: CountryViewModel = hiltViewModel()
+) {
     val state by viewModel.state.collectAsState()
-
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    var expandedCities by rememberSaveable { mutableStateOf(false) }
-    var expandedStates by rememberSaveable { mutableStateOf(false) }
-
-    val rotation by animateFloatAsState(if (expanded) 180f else 0f, label = "")
-    val rotationCities by animateFloatAsState(if (expandedCities) 180f else 0f, label = "")
-    val rotationStates by animateFloatAsState(if (expandedStates) 180f else 0f, label = "")
-
-    val populationData = state.population?.populationCounts?.reversed() ?: emptyList()
-    val cities = state.cities ?: emptyList()
-    val states = state.states ?: emptyList()
-
-    val dataToShow = mutableListOf(
-        "ISO3 Code: ${state.country?.iso3}",
-        "ISO2 Code: ${state.country?.iso2}"
-    )
-
-    state.currency?.let { dataToShow.add("Currency: $it") }
-    state.position?.let { dataToShow.add("Location: ${it.lat}, ${it.lon}") }
-    if (cities.isNotEmpty()) dataToShow.add("Number of cities: ${cities.size}")
-    if (states.isNotEmpty()) dataToShow.add("Number of states: ${states.size}")
-    state.dialCode?.let { dataToShow.add("Country code/Dial code: $it") }
 
     LaunchedEffect(Unit) {
         viewModel.getCountryData(iso2)
     }
 
-    Scaffold(topBar = {
-        TopAppBar(title = { Text("Country") })
-    }) { contentPadding ->
-        LazyColumn(
-            contentPadding = contentPadding,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-        ) {
-            item {
-                Box {
+    Scaffold(topBar = { TopAppBar(title = { Text("Country") }) }) { padding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            when (val result = state) {
+                is CountryState.Loading -> {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(160.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(
-                                brush = Brush.linearGradient(
-                                    listOf(
-                                        Color.Blue.copy(alpha = 0.5f),
-                                        Color.Red.copy(alpha = 0.5f)
-                                    )
-                                )
-                            )
-                    )
-                    Box(
-                        contentAlignment = Alignment.BottomCenter,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(220.dp)
+                            .fillMaxSize()
+                            .padding(padding),
+                        contentAlignment = Alignment.Center
                     ) {
-                        state.flagUrl?.let {
-                            NetworkSvg(
-                                it, cornerRadius = 8, modifier = Modifier.height(140.dp)
-                            )
-                        }
+                        CircularProgressIndicator()
                     }
                 }
-                Spacer(modifier = modifier.size(16.dp))
-            }
 
-            item {
-                Text(state.country?.name?:"", style = MaterialTheme.typography.titleLarge)
-                Text(
-                    state.country?.capital?:"",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Black.copy(alpha = 0.5f)
-                )
-                Spacer(modifier = modifier.size(16.dp))
-            }
+                is CountryState.Error -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(result.error, color = MaterialTheme.colorScheme.error)
+                    }
+                }
 
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, Color.Black.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-                        .padding(16.dp)
-                ) {
-                    Column {
-                        dataToShow.forEach {
-                            AnimatedVisibility(visible = true) {
-                                Text(it)
+                is CountryState.Success -> {
+                    var showPopulation by rememberSaveable { mutableStateOf(false) }
+                    var showStates by rememberSaveable { mutableStateOf(false) }
+                    var showCities by rememberSaveable { mutableStateOf(false) }
+
+                    val populationData =
+                        result.population.populationCounts?.reversed() ?: emptyList()
+
+                    val infoList = buildList {
+                        add("ISO3 Code: ${result.country.iso3}")
+                        add("ISO2 Code: ${result.country.iso2}")
+                        add("Currency: ${result.currency}")
+                        add("Location: ${result.position.lat}, ${result.position.lon}")
+                        add("Country code/Dial code: ${result.dialCode}")
+                        if (result.cities.isNotEmpty()) add("Number of cities: ${result.cities.size}")
+                        if (result.states.isNotEmpty()) add("Number of states: ${result.states.size}")
+                    }
+
+                    LazyColumn(
+                        contentPadding = padding,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        item {
+                            HeaderImage(result.flagUrl)
+                            Spacer(Modifier.height(16.dp))
+                        }
+
+                        item {
+                            Text(result.country.name, style = MaterialTheme.typography.titleLarge)
+                            Text(
+                                result.country.capital,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.Black.copy(alpha = 0.5f)
+                            )
+                            Spacer(Modifier.height(16.dp))
+                        }
+
+                        item {
+                            InfoCard(infoList)
+                            Spacer(Modifier.height(16.dp))
+                        }
+
+                        item {
+                            expandableSection(title = "Population (${populationData.size})",
+                                expanded = showPopulation,
+                                onToggle = { showPopulation = !showPopulation }) {
+                                populationData.forEach {
+                                    KeyValueRow(it.year.toString(), it.value.formatNumber())
+                                }
+                            }
+
+                            expandableSection(title = "States (${result.states.size})",
+                                expanded = showStates,
+                                onToggle = { showStates = !showStates }) {
+                                result.states.forEach {
+                                    Text(
+                                        text = "🌁 ${it.name} - ${it.stateCode}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        modifier = Modifier.padding(vertical = 4.dp)
+                                    )
+                                }
+                            }
+
+                            expandableSection(title = "Cities (${result.cities.size})",
+                                expanded = showCities,
+                                onToggle = { showCities = !showCities }) {
+                                result.cities.forEach {
+                                    Text(
+                                        text = "🏙️ $it",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        modifier = Modifier.padding(vertical = 4.dp)
+                                    )
+                                }
                             }
                         }
                     }
                 }
-                Spacer(modifier = modifier.size(16.dp))
-            }
-
-            item {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { expanded = !expanded }
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        "Population (${populationData.size})",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = "Expand",
-                        modifier = Modifier
-                            .rotate(rotation)
-                            .size(30.dp)
-                    )
-                }
-            }
-
-            if (expanded) {
-                items(populationData.size) { index ->
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp, horizontal = 16.dp)
-                    ) {
-                        Text(
-                            populationData[index].year.toString(),
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text("➡️")
-                        Text(populationData[index].value.formatNumber())
-                    }
-                }
-            }
-
-            item {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { expandedStates = !expandedStates }
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        "States (${states.size})",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = "Expand",
-                        modifier = Modifier
-                            .rotate(rotationStates)
-                            .size(30.dp)
-                    )
-                }
-            }
-
-            if (expandedStates) {
-                items(states.size) { index ->
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp, horizontal = 16.dp)
-                    ) {
-                        Text(
-                            "🌁 ${states[index].name} - ${states[index].stateCode}",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
-                }
-            }
-
-            item {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { expandedCities = !expandedCities }
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        "Cities (${cities.size})",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = "Expand",
-                        modifier = Modifier
-                            .rotate(rotationCities)
-                            .size(30.dp)
-                    )
-                }
-            }
-
-            if (expandedCities) {
-                items(cities.size) { index ->
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp, horizontal = 16.dp)
-                    ) {
-                        Text(
-                            "🏙️ ${cities[index]}",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
-                }
             }
         }
+    }
+}
+
+@Composable
+fun HeaderImage(flagUrl: String) {
+    Box {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(160.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    Brush.linearGradient(
+                        listOf(Color.Blue.copy(alpha = 0.5f), Color.Red.copy(alpha = 0.5f))
+                    )
+                )
+        )
+        Box(
+            contentAlignment = Alignment.BottomCenter,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+        ) {
+            NetworkSvg(flagUrl, cornerRadius = 8, modifier = Modifier.height(140.dp))
+        }
+    }
+}
+
+@Composable
+fun InfoCard(infoList: List<String>) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, Color.Black.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+            .padding(16.dp)
+    ) {
+        Column {
+            infoList.forEach { Text(it) }
+        }
+    }
+}
+
+@Composable
+fun expandableSection(
+    title: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val rotation by animateFloatAsState(if (expanded) 180f else 0f, label = "")
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onToggle() }
+                .padding(16.dp)) {
+            Text(
+                title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = null,
+                modifier = Modifier
+                    .rotate(rotation)
+                    .size(30.dp)
+            )
+        }
+
+        AnimatedVisibility(visible = expanded) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+fun KeyValueRow(key: String, value: String) {
+    Row(
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        Text(key, style = MaterialTheme.typography.titleMedium)
+        Text("➡️")
+        Text(value, style = MaterialTheme.typography.titleMedium)
     }
 }
 

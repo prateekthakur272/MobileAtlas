@@ -5,15 +5,17 @@ import dev.prateekthakur.mobileatlas.domain.model.CountryPopulation
 import dev.prateekthakur.mobileatlas.domain.model.CountryPosition
 import dev.prateekthakur.mobileatlas.domain.model.State
 
-data class CountryState(
-    val country: Country? = null,
-    val population: CountryPopulation? = null,
-    val position: CountryPosition? = null,
-    val flagUrl: String? = null,
-    val currency: String? = null,
-    val cities: List<String>? = null,
-    val dialCode: String? = null,
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    val states: List<State>? = null
-)
+sealed class CountryState {
+    data object Loading : CountryState()
+    data class Error(val error: String) : CountryState()
+    data class Success(
+        val country: Country,
+        val population: CountryPopulation,
+        val position: CountryPosition,
+        val flagUrl: String,
+        val currency: String,
+        val cities: List<String>,
+        val dialCode: String,
+        val states: List<State>
+    ) : CountryState()
+}
